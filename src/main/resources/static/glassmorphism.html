@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Glass UI · Enterprise App</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&family=Fraunces:ital,wght@0,300;1,300&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{--pink:#ff6eb4;--blue:#6eb4ff;--purple:#b46eff;--text:#fff;}
+body{min-height:100vh;font-family:'Outfit',sans-serif;background:#0a0015;overflow-x:hidden;color:var(--text);}
+
+/* MESH BACKGROUND */
+.bg{position:fixed;inset:0;z-index:0;}
+.blob{position:absolute;border-radius:50%;filter:blur(80px);animation:float 8s ease-in-out infinite;}
+.blob1{width:600px;height:600px;background:radial-gradient(circle,rgba(180,110,255,0.5),transparent);top:-100px;left:-100px;animation-delay:0s;}
+.blob2{width:500px;height:500px;background:radial-gradient(circle,rgba(255,110,180,0.4),transparent);top:30%;right:-100px;animation-delay:-3s;}
+.blob3{width:400px;height:400px;background:radial-gradient(circle,rgba(110,180,255,0.4),transparent);bottom:-100px;left:30%;animation-delay:-6s;}
+@keyframes float{0%,100%{transform:translate(0,0) scale(1);}33%{transform:translate(30px,-30px) scale(1.05);}66%{transform:translate(-20px,20px) scale(0.95);}}
+
+/* NAV */
+nav{position:fixed;top:0;width:100%;z-index:100;padding:1.2rem 3rem;display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,0.03);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.08);}
+.logo{font-family:'Outfit',sans-serif;font-weight:900;font-size:1.3rem;background:linear-gradient(135deg,var(--pink),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.nav-links{display:flex;gap:2rem;list-style:none;}
+.nav-links a{color:rgba(255,255,255,0.5);text-decoration:none;font-size:0.9rem;transition:color 0.3s;}
+.nav-links a:hover,.nav-links a.active{color:#fff;}
+.env-badge{background:rgba(255,110,180,0.15);border:1px solid rgba(255,110,180,0.3);color:var(--pink);font-size:0.7rem;padding:0.3rem 0.8rem;border-radius:20px;}
+
+/* HERO */
+.hero{position:relative;z-index:1;padding:10rem 3rem 4rem;max-width:1100px;margin:0 auto;text-align:center;}
+.tag{display:inline-block;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);padding:0.4rem 1rem;border-radius:20px;font-size:0.8rem;margin-bottom:2rem;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.6);}
+.hero h1{font-size:clamp(3rem,7vw,6rem);font-weight:900;line-height:1;margin-bottom:1.5rem;background:linear-gradient(135deg,#fff 30%,var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.hero p{color:rgba(255,255,255,0.5);font-size:1.1rem;font-family:'Fraunces',serif;font-style:italic;max-width:500px;margin:0 auto 3rem;}
+
+/* GLASS CARDS */
+.glass-grid{position:relative;z-index:1;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.5rem;padding:2rem 3rem;max-width:1100px;margin:0 auto;}
+.glass-card{background:rgba(255,255,255,0.04);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:2.5rem;transition:all 0.4s;position:relative;overflow:hidden;}
+.glass-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,0.06),transparent);opacity:0;transition:opacity 0.4s;}
+.glass-card:hover::before{opacity:1;}
+.glass-card:hover{transform:translateY(-6px);border-color:rgba(255,255,255,0.2);box-shadow:0 30px 60px rgba(0,0,0,0.4);}
+.card-glow{position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle at center,rgba(180,110,255,0.08),transparent 60%);pointer-events:none;}
+.card-num{font-size:3rem;font-weight:900;background:linear-gradient(135deg,var(--pink),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:1rem;}
+.card-title{font-size:1.3rem;font-weight:700;margin-bottom:0.8rem;}
+.card-text{color:rgba(255,255,255,0.45);font-size:0.95rem;line-height:1.7;}
+.card-bar{margin-top:1.5rem;height:3px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden;}
+.card-bar-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--pink),var(--purple));animation:barGrow 2s ease 0.5s both;}
+@keyframes barGrow{from{width:0;}to{width:var(--w);}}
+
+/* BIG GLASS PANEL */
+.panel{position:relative;z-index:1;margin:2rem 3rem;background:rgba(255,255,255,0.03);backdrop-filter:blur(30px);border:1px solid rgba(255,255,255,0.08);border-radius:32px;padding:3rem;max-width:1060px;margin:2rem auto;}
+.panel h2{font-size:2rem;font-weight:900;margin-bottom:2rem;background:linear-gradient(135deg,#fff,var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1.5rem;}
+.info-item{background:rgba(255,255,255,0.04);border-radius:16px;padding:1.5rem;}
+.info-label{font-size:0.75rem;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:0.5rem;}
+.info-value{font-size:1.1rem;font-weight:600;color:#fff;}
+.info-value.green{color:#4ade80;}
+.info-value.pink{color:var(--pink);}
+
+.nav-bottom{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);z-index:100;background:rgba(255,255,255,0.06);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.1);border-radius:50px;padding:0.8rem 2rem;display:flex;gap:1.5rem;}
+.nav-bottom a{color:rgba(255,255,255,0.5);text-decoration:none;font-size:0.85rem;transition:color 0.3s;}
+.nav-bottom a:hover{color:#fff;}
+</style>
+</head>
+<body>
+<div class="bg">
+  <div class="blob blob1"></div>
+  <div class="blob blob2"></div>
+  <div class="blob blob3"></div>
+</div>
+
+<nav>
+  <div class="logo">⬡ EnterpriseApp</div>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li>
+    <li><a href="glassmorphism.html" class="active">Glass UI</a></li>
+    <li><a href="neon.html">Neon</a></li>
+    <li><a href="nature.html">Nature</a></li>
+  </ul>
+  <span class="env-badge">GLASSMORPHISM</span>
+</nav>
+
+<section class="hero">
+  <span class="tag">✦ Glass Morphism Design</span>
+  <h1>Frosted Glass<br/>Interface</h1>
+  <p>Layered translucency meets gradient mesh — a UI that breathes.</p>
+</section>
+
+<div class="glass-grid">
+  <div class="glass-card">
+    <div class="card-glow"></div>
+    <div class="card-num">01</div>
+    <div class="card-title">Deployment Pipeline</div>
+    <div class="card-text">Automated CI/CD with Jenkins, multi-branch strategy, zero downtime rolling deployments.</div>
+    <div class="card-bar"><div class="card-bar-fill" style="--w:85%"></div></div>
+  </div>
+  <div class="glass-card">
+    <div class="card-glow"></div>
+    <div class="card-num">02</div>
+    <div class="card-title">AWS Infrastructure</div>
+    <div class="card-text">Elastic Beanstalk with Auto Scaling, Load Balancer across multiple availability zones.</div>
+    <div class="card-bar"><div class="card-bar-fill" style="--w:92%"></div></div>
+  </div>
+  <div class="glass-card">
+    <div class="card-glow"></div>
+    <div class="card-num">03</div>
+    <div class="card-title">Spring Boot Backend</div>
+    <div class="card-text">RESTful APIs with Spring Boot 3, Actuator health checks, environment-aware configuration.</div>
+    <div class="card-bar"><div class="card-bar-fill" style="--w:78%"></div></div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Live System Info</h2>
+  <div class="info-grid" id="infoGrid">
+    <div class="info-item"><div class="info-label">Status</div><div class="info-value green" id="status">Loading...</div></div>
+    <div class="info-item"><div class="info-label">Environment</div><div class="info-value pink" id="env">--</div></div>
+    <div class="info-item"><div class="info-label">Version</div><div class="info-value" id="ver">--</div></div>
+    <div class="info-item"><div class="info-label">App Name</div><div class="info-value" id="appname">--</div></div>
+  </div>
+</div>
+
+<div class="nav-bottom">
+  <a href="index.html">🌌 3D</a>
+  <a href="glassmorphism.html">🔮 Glass</a>
+  <a href="neon.html">⚡ Neon</a>
+  <a href="nature.html">🌿 Nature</a>
+</div>
+
+<script>
+fetch('/api/health').then(r=>r.json()).then(d=>{
+  document.getElementById('status').textContent = d.status || 'UP';
+  document.getElementById('env').textContent = d.environment || 'production';
+  document.getElementById('ver').textContent = d.version || '1.0.0';
+}).catch(()=>{
+  document.getElementById('status').textContent = 'UP';
+  document.getElementById('env').textContent = 'production';
+  document.getElementById('ver').textContent = '1.0.0';
+});
+fetch('/api/info').then(r=>r.json()).then(d=>{
+  document.getElementById('appname').textContent = d.app || 'Enterprise App';
+}).catch(()=>{ document.getElementById('appname').textContent = 'Enterprise App'; });
+</script>
+</body>
+</html>

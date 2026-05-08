@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Neon · Enterprise App</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{--cyan:#00fff5;--pink:#ff006e;--yellow:#ffe600;--dark:#020010;--grid:rgba(0,255,245,0.04);}
+body{background:var(--dark);color:#fff;font-family:'Rajdhani',sans-serif;overflow-x:hidden;min-height:100vh;}
+
+/* GRID BG */
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:40px 40px;z-index:0;pointer-events:none;}
+
+/* SCANLINES */
+body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.15) 2px,rgba(0,0,0,0.15) 4px);z-index:0;pointer-events:none;animation:scanMove 8s linear infinite;}
+@keyframes scanMove{from{background-position:0 0;}to{background-position:0 100px;}}
+
+/* NAV */
+nav{position:fixed;top:0;width:100%;z-index:100;padding:1rem 3rem;display:flex;justify-content:space-between;align-items:center;background:rgba(2,0,16,0.9);border-bottom:1px solid var(--cyan);box-shadow:0 0 20px rgba(0,255,245,0.1);}
+.logo{font-family:'Orbitron',monospace;font-weight:900;font-size:1.2rem;color:var(--cyan);text-shadow:0 0 20px var(--cyan);}
+.nav-links{display:flex;gap:2rem;list-style:none;}
+.nav-links a{color:rgba(0,255,245,0.5);text-decoration:none;font-family:'Share Tech Mono',monospace;font-size:0.85rem;transition:all 0.3s;}
+.nav-links a:hover,.nav-links a.active{color:var(--cyan);text-shadow:0 0 10px var(--cyan);}
+.env-badge{font-family:'Orbitron',monospace;font-size:0.65rem;color:var(--pink);border:1px solid var(--pink);padding:0.3rem 0.8rem;box-shadow:0 0 10px rgba(255,0,110,0.3);}
+
+/* HERO */
+.hero{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:2rem 3rem;max-width:1200px;margin:0 auto;}
+.glitch{font-family:'Orbitron',monospace;font-size:clamp(3rem,8vw,8rem);font-weight:900;color:#fff;position:relative;line-height:1;margin-bottom:1rem;text-shadow:0 0 40px rgba(0,255,245,0.3);}
+.glitch::before,.glitch::after{content:attr(data-text);position:absolute;top:0;left:0;width:100%;height:100%;}
+.glitch::before{color:var(--cyan);animation:glitch1 3s infinite;clip-path:polygon(0 0,100% 0,100% 45%,0 45%);}
+.glitch::after{color:var(--pink);animation:glitch2 3s infinite;clip-path:polygon(0 55%,100% 55%,100% 100%,0 100%);}
+@keyframes glitch1{0%,90%,100%{transform:none;}92%{transform:translate(-3px,1px);}94%{transform:translate(3px,-1px);}96%{transform:translate(-2px,2px);}}
+@keyframes glitch2{0%,90%,100%{transform:none;}92%{transform:translate(3px,-1px);}94%{transform:translate(-3px,1px);}96%{transform:translate(2px,-2px);}}
+.sub{font-family:'Share Tech Mono',monospace;color:var(--cyan);font-size:1rem;margin-bottom:3rem;opacity:0.7;animation:blink 1s step-end infinite;}
+.sub span{opacity:1;}
+@keyframes blink{50%{opacity:0.4;}}
+
+/* TERMINAL */
+.terminal{background:rgba(0,0,0,0.8);border:1px solid var(--cyan);border-radius:8px;padding:1.5rem;max-width:600px;margin-bottom:3rem;box-shadow:0 0 30px rgba(0,255,245,0.1),inset 0 0 30px rgba(0,0,0,0.5);}
+.terminal-header{display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem;padding-bottom:0.8rem;border-bottom:1px solid rgba(0,255,245,0.1);}
+.dot{width:10px;height:10px;border-radius:50%;}
+.dot.red{background:#ff5f56;}.dot.yellow{background:#ffbd2e;}.dot.green{background:#27c93f;}
+.terminal-title{font-family:'Share Tech Mono',monospace;font-size:0.75rem;color:rgba(0,255,245,0.4);margin-left:auto;}
+.line{font-family:'Share Tech Mono',monospace;font-size:0.85rem;margin:0.4rem 0;animation:typeIn 0.5s ease both;}
+.line.prompt::before{content:'$ ';color:var(--cyan);}
+.line.output{color:rgba(255,255,255,0.6);padding-left:1rem;}
+.line.success{color:#4ade80;}
+.line.warn{color:var(--yellow);}
+@keyframes typeIn{from{opacity:0;transform:translateX(-5px);}to{opacity:1;transform:none;}}
+
+/* STATS GRID */
+.stats-section{position:relative;z-index:1;padding:3rem;max-width:1200px;margin:0 auto;}
+.section-title{font-family:'Orbitron',monospace;font-size:1rem;color:var(--cyan);letter-spacing:4px;text-transform:uppercase;margin-bottom:2rem;display:flex;align-items:center;gap:1rem;}
+.section-title::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--cyan),transparent);}
+.neon-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.5rem;}
+.neon-card{background:rgba(0,0,0,0.6);border:1px solid rgba(0,255,245,0.2);border-radius:4px;padding:2rem;position:relative;transition:all 0.3s;overflow:hidden;}
+.neon-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);animation:scan 3s linear infinite;}
+@keyframes scan{from{transform:scaleX(0);}to{transform:scaleX(1);}}
+.neon-card:hover{border-color:var(--cyan);box-shadow:0 0 30px rgba(0,255,245,0.15),inset 0 0 30px rgba(0,255,245,0.02);}
+.neon-num{font-family:'Orbitron',monospace;font-size:2.5rem;font-weight:900;color:var(--cyan);text-shadow:0 0 20px var(--cyan);margin-bottom:0.5rem;}
+.neon-label{font-family:'Share Tech Mono',monospace;font-size:0.8rem;color:rgba(255,255,255,0.4);letter-spacing:2px;text-transform:uppercase;}
+.neon-bar{margin-top:1rem;height:2px;background:rgba(0,255,245,0.1);}
+.neon-bar-fill{height:100%;background:var(--cyan);box-shadow:0 0 8px var(--cyan);animation:barW 2s ease both;}
+@keyframes barW{from{width:0;}}
+
+.nav-bottom{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);z-index:100;background:rgba(0,0,0,0.9);border:1px solid var(--cyan);padding:0.8rem 2rem;display:flex;gap:1.5rem;box-shadow:0 0 20px rgba(0,255,245,0.2);}
+.nav-bottom a{color:rgba(0,255,245,0.5);text-decoration:none;font-family:'Share Tech Mono',monospace;font-size:0.8rem;transition:all 0.3s;}
+.nav-bottom a:hover{color:var(--cyan);text-shadow:0 0 10px var(--cyan);}
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo">⬡ ENTERPRISE_SYS</div>
+  <ul class="nav-links">
+    <li><a href="index.html">HOME</a></li>
+    <li><a href="glassmorphism.html">GLASS</a></li>
+    <li><a href="neon.html" class="active">NEON</a></li>
+    <li><a href="nature.html">NATURE</a></li>
+  </ul>
+  <span class="env-badge">SYS::PROD</span>
+</nav>
+
+<section class="hero">
+  <div class="glitch" data-text="CYBER">CYBER</div>
+  <div class="glitch" data-text="DEPLOY" style="color:var(--cyan);text-shadow:0 0 40px var(--cyan);">DEPLOY</div>
+  <div class="sub"><span>></span> AWS Elastic Beanstalk · Jenkins CI/CD · Spring Boot_</div>
+
+  <div class="terminal">
+    <div class="terminal-header">
+      <div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div>
+      <div class="terminal-title">jenkins@pipeline:~</div>
+    </div>
+    <div class="line prompt" style="animation-delay:0.2s">git push origin main</div>
+    <div class="line output" style="animation-delay:0.6s">Enumerating objects: 24, done.</div>
+    <div class="line output" style="animation-delay:0.9s">Writing objects: 100% (24/24), done.</div>
+    <div class="line prompt" style="animation-delay:1.2s">jenkins build triggered</div>
+    <div class="line success" style="animation-delay:1.6s">✓ Tests passed (47/47)</div>
+    <div class="line success" style="animation-delay:2s">✓ JAR built: enterprise-app.jar</div>
+    <div class="line warn" style="animation-delay:2.4s">⟳ Deploying to PROD environment...</div>
+    <div class="line success" style="animation-delay:3s">✓ DEPLOYED SUCCESSFULLY · 0ms downtime</div>
+  </div>
+</section>
+
+<section class="stats-section">
+  <div class="section-title">SYSTEM METRICS</div>
+  <div class="neon-grid">
+    <div class="neon-card">
+      <div class="neon-num">99.9%</div>
+      <div class="neon-label">Uptime</div>
+      <div class="neon-bar"><div class="neon-bar-fill" style="width:99.9%"></div></div>
+    </div>
+    <div class="neon-card">
+      <div class="neon-num" id="cpu">4</div>
+      <div class="neon-label">CPU Cores</div>
+      <div class="neon-bar"><div class="neon-bar-fill" style="width:60%"></div></div>
+    </div>
+    <div class="neon-card">
+      <div class="neon-num" id="mem">--</div>
+      <div class="neon-label">Memory MB</div>
+      <div class="neon-bar"><div class="neon-bar-fill" style="width:45%"></div></div>
+    </div>
+    <div class="neon-card">
+      <div class="neon-num">v1.0</div>
+      <div class="neon-label">Version</div>
+      <div class="neon-bar"><div class="neon-bar-fill" style="width:100%"></div></div>
+    </div>
+  </div>
+</section>
+
+<div class="nav-bottom">
+  <a href="index.html">🌌 3D</a>
+  <a href="glassmorphism.html">🔮 GLASS</a>
+  <a href="neon.html">⚡ NEON</a>
+  <a href="nature.html">🌿 NATURE</a>
+</div>
+
+<script>
+fetch('/api/stats').then(r=>r.json()).then(d=>{
+  document.getElementById('mem').textContent = Math.round(d.memory_used/1024/1024);
+  document.getElementById('cpu').textContent = d.processors;
+}).catch(()=>{
+  document.getElementById('mem').textContent = '256';
+  document.getElementById('cpu').textContent = '4';
+});
+</script>
+</body>
+</html>
