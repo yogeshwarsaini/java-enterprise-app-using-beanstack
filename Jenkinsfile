@@ -16,44 +16,50 @@ pipeline {
     stages {
 
         // ─────────────────────────────────────────
-        // Step 1: Jenkins branch se config load karo
+        // Step 1: Pehle actual branch checkout karo
         // ─────────────────────────────────────────
-        stage('Load Config') {
+        stage('Checkout') {
             steps {
+                checkout scm
                 script {
-                    // Pehle current branch ka naam save karo
-                    def currentBranch = env.GIT_BRANCH?.replaceAll('origin/', '') 
-                                     ?: env.BRANCH_NAME 
+                    def currentBranch = env.GIT_BRANCH?.replaceAll('origin/', '')
+                                     ?: env.BRANCH_NAME
                                      ?: 'dev'
                     env.CURRENT_BRANCH = currentBranch
                     echo "📌 Current Branch: ${currentBranch}"
-
-                    // jenkins branch checkout karo
-                    checkout([
-                        $class            : 'GitSCM',
-                        branches          : [[name: 'refs/heads/jenkins']],
-                        userRemoteConfigs : scm.userRemoteConfigs
-                    ])
-
-                    // Parameters load karo
-                    config = evaluate(readFile('Jenkinsfile'))
-
-                    // Apni actual branch wapas checkout karo
-                    checkout([
-                        $class            : 'GitSCM',
-                        branches          : [[name: "refs/heads/${currentBranch}"]],
-                        userRemoteConfigs : scm.userRemoteConfigs
-                    ])
-
-                    echo "✅ Config loaded from jenkins branch"
-                    echo "🌍 Deploy Env : ${config.BRANCH_DEPLOY_MAP[currentBranch] ?: 'dev'}"
-                    echo "☁️  EB Env     : ${config.BRANCH_ENV_MAP[currentBranch] ?: 'Java-app-dev-env'}"
                 }
             }
         }
 
         // ─────────────────────────────────────────
-        // Step 2: Environment variables set karo
+        // Step 2: Jenkins branch se config load karo
+        // ─────────────────────────────────────────
+        stage('Load Config') {
+            steps {
+                script {
+                    // Temp folder mein jenkins branch checkout karo
+                    dir('jenkins-config') {
+                        checkout([
+                            $class            : 'GitSCM',
+                            branches          : [[name: 'refs/heads/jenkins']],
+                            userRemoteConfigs : scm.userRemoteConfigs
+                        ])
+                        // Parameters load karo
+                        config = evaluate(readFile('Jenkinsfile'))
+                    }
+
+                    // jenkins-config folder delete karo
+                    sh 'rm -rf jenkins-config'
+
+                    echo "✅ Config loaded from jenkins branch"
+                    echo "🌍 Deploy Env : ${config.BRANCH_DEPLOY_MAP[env.CURRENT_BRANCH] ?: 'dev'}"
+                    echo "☁️  EB Env     : ${config.BRANCH_ENV_MAP[env.CURRENT_BRANCH] ?: 'Java-app-dev-env'}"
+                }
+            }
+        }
+
+        // ─────────────────────────────────────────
+        // Step 3: Environment variables set karo
         // ─────────────────────────────────────────
         stage('Set Environment') {
             steps {
@@ -69,14 +75,14 @@ pipeline {
                     env.EB_ENV_NAME = config.BRANCH_ENV_MAP[branch]    ?: 'Java-app-dev-env'
                     env.DEPLOY_ENV  = config.BRANCH_DEPLOY_MAP[branch] ?: 'dev'
 
-                    echo "🚀 Deploying to: ${env.DEPLOY_ENV.toUpperCase()}"
-                    echo "☁️  EB Env      : ${env.EB_ENV_NAME}"
+                    echo "🚀 Deploying to : ${env.DEPLOY_ENV.toUpperCase()}"
+                    echo "☁️  EB Env       : ${env.EB_ENV_NAME}"
                 }
             }
         }
 
         // ─────────────────────────────────────────
-        // Step 3: Build
+        // Step 4: Build
         // ─────────────────────────────────────────
         stage('Build') {
             steps {
@@ -86,7 +92,7 @@ pipeline {
         }
 
         // ─────────────────────────────────────────
-        // Step 4: Test
+        // Step 5: Test
         // ─────────────────────────────────────────
         stage('Test') {
             steps {
@@ -101,7 +107,7 @@ pipeline {
         }
 
         // ─────────────────────────────────────────
-        // Step 5: JAR S3 pe Upload karo
+        // Step 6: JAR S3 pe Upload karo
         // ─────────────────────────────────────────
         stage('Upload to S3') {
             steps {
@@ -118,7 +124,7 @@ pipeline {
         }
 
         // ─────────────────────────────────────────
-        // Step 6: Dev / Test / Staging Deploy
+        // Step 7: Dev / Test / Staging Deploy
         // ─────────────────────────────────────────
         stage('Deploy') {
             when {
@@ -130,7 +136,7 @@ pipeline {
         }
 
         // ─────────────────────────────────────────
-        // Step 7: Production - Manual Approval
+        // Step 8: Production - Manual Approval
         // ─────────────────────────────────────────
         stage('Production Approval') {
             when {
@@ -144,7 +150,7 @@ pipeline {
         }
 
         // ─────────────────────────────────────────
-        // Step 8: Production Deploy
+        // Step 9: Production Deploy
         // ─────────────────────────────────────────
         stage('Deploy to PROD') {
             when {
