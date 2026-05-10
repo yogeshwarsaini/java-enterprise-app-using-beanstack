@@ -10,7 +10,7 @@ return [
     S3_BUCKET   : 'elasticbeanstalk-ap-south-1-678804053714',
 
     // App Config
-    APP_NAME : 'java-enterprise-app',
+    APP_NAME : 'java-app-prod',
     JAR_NAME : 'enterprise-app.jar',
 
     // Branch → Elastic Beanstalk Environment Mapping
