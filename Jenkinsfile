@@ -7,157 +7,120 @@ pipeline {
     }
 
     environment {
-        APP_NAME        = 'java-enterprise-app'
-        AWS_REGION      = 'ap-south-1'
-        EB_APP_NAME     = 'my-java-app'
-        S3_BUCKET       = 'elasticbeanstalk-ap-south-1-YOUR_ACCOUNT_ID'
-
-        // Elastic Beanstalk Environment Names
-        EB_ENV_DEV      = 'myapp-dev'
-        EB_ENV_TEST     = 'myapp-test'
-        EB_ENV_STAGING  = 'myapp-staging'
-        EB_ENV_PROD     = 'myapp-prod'
-
-        JAR_NAME        = 'enterprise-app.jar'
-        VERSION         = "${BUILD_NUMBER}-${GIT_COMMIT[0..6]}"
+        APP_NAME    = 'java-enterprise-app'
+        AWS_REGION  = 'ap-south-1'
+        EB_APP_NAME = 'my-java-app'
+        S3_BUCKET   = 'elasticbeanstalk-ap-south-1-YOUR_ACCOUNT_ID'
+        JAR_NAME    = 'enterprise-app.jar'
     }
 
     stages {
 
-        // ─────────────────────────────────────
         stage('📋 Checkout') {
             steps {
-                echo "Branch: ${env.BRANCH_NAME}"
-                echo "Build:  ${env.BUILD_NUMBER}"
                 checkout scm
+                echo "🌿 Branch: ${env.BRANCH_NAME}"
             }
         }
 
-        // ─────────────────────────────────────
+        stage('🔧 Set Environment') {
+            steps {
+                script {
+                    if (env.BRANCH_NAME == 'main') {
+                        env.DEPLOY_ENV  = 'production'
+                        env.EB_ENV_NAME = 'myapp-prod'
+                    } else if (env.BRANCH_NAME == 'staging') {
+                        env.DEPLOY_ENV  = 'staging'
+                        env.EB_ENV_NAME = 'myapp-staging'
+                    } else if (env.BRANCH_NAME == 'test') {
+                        env.DEPLOY_ENV  = 'test'
+                        env.EB_ENV_NAME = 'myapp-test'
+                    } else {
+                        env.DEPLOY_ENV  = 'dev'
+                        env.EB_ENV_NAME = 'myapp-dev'
+                    }
+                    echo "🚀 Deploying to: ${env.DEPLOY_ENV.toUpperCase()}"
+                }
+            }
+        }
+
         stage('🔨 Build') {
             steps {
                 sh 'mvn clean package -DskipTests'
                 echo "✅ Build complete"
             }
-            post {
-                success { echo "JAR created: target/${JAR_NAME}" }
-                failure { error "❌ Build failed" }
-            }
         }
 
-        // ─────────────────────────────────────
         stage('🧪 Test') {
             steps {
                 sh 'mvn test'
             }
             post {
                 always {
-                    junit '**/target/surefire-reports/*.xml'
+                    junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
                 }
-                failure { error "❌ Tests failed — stopping pipeline" }
             }
         }
 
-        // ─────────────────────────────────────
-        stage('🚀 Deploy to DEV') {
-            when {
-                branch 'dev'
-            }
+        stage('📦 Upload to S3') {
             steps {
-                deployToEB(env.EB_ENV_DEV, 'dev')
+                script {
+                    def s3Key = "${env.APP_NAME}/${env.DEPLOY_ENV}/build-${env.BUILD_NUMBER}-${env.JAR_NAME}"
+                    env.S3_KEY = s3Key
+                    withAWS(region: env.AWS_REGION, credentials: 'aws-credentials') {
+                        sh "aws s3 cp target/${env.JAR_NAME} s3://${env.S3_BUCKET}/${s3Key}"
+                    }
+                    echo "✅ Uploaded: ${s3Key}"
+                }
             }
         }
 
-        // ─────────────────────────────────────
-        stage('🚀 Deploy to TEST') {
-            when {
-                branch 'test'
-            }
-            steps {
-                deployToEB(env.EB_ENV_TEST, 'test')
-            }
+        stage('🚀 Deploy') {
+            when { not { branch 'main' } }
+            steps { script { deployToEB() } }
         }
 
-        // ─────────────────────────────────────
-        stage('🚀 Deploy to STAGING') {
-            when {
-                branch 'staging'
-            }
+        stage('✋ Production Approval') {
+            when { branch 'main' }
             steps {
-                deployToEB(env.EB_ENV_STAGING, 'staging')
-            }
-        }
-
-        // ─────────────────────────────────────
-        stage('🚀 Deploy to PRODUCTION') {
-            when {
-                branch 'main'
-            }
-            steps {
-                // Manual approval for PROD
                 timeout(time: 10, unit: 'MINUTES') {
-                    input message: '🚨 Deploy to PRODUCTION?', ok: 'Yes, Deploy!'
+                    input message: "🚨 Deploy to PRODUCTION?", ok: 'Yes, Deploy!'
                 }
-                deployToEB(env.EB_ENV_PROD, 'production')
             }
+        }
+
+        stage('🚀 Deploy to PROD') {
+            when { branch 'main' }
+            steps { script { deployToEB() } }
         }
     }
 
     post {
-        success {
-            echo "✅ Pipeline completed successfully!"
-            echo "Branch: ${env.BRANCH_NAME} | Build: ${env.BUILD_NUMBER}"
-        }
-        failure {
-            echo "❌ Pipeline failed on branch: ${env.BRANCH_NAME}"
-        }
-        always {
-            cleanWs()
-        }
+        success { echo "✅ Deployed to ${env.DEPLOY_ENV?.toUpperCase()}" }
+        failure { echo "❌ Failed on branch: ${env.BRANCH_NAME}" }
+        always  { cleanWs() }
     }
 }
 
-// ─────────────────────────────────────────────────
-// Helper function: Deploy JAR to Elastic Beanstalk
-// ─────────────────────────────────────────────────
-def deployToEB(String ebEnv, String envName) {
-    echo "📦 Deploying to ${envName.toUpperCase()} (${ebEnv})..."
-
+def deployToEB() {
+    def versionLabel = "${env.DEPLOY_ENV}-build-${env.BUILD_NUMBER}"
     withAWS(region: env.AWS_REGION, credentials: 'aws-credentials') {
-
-        // Step 1: Upload JAR to S3
-        def s3Key = "${env.APP_NAME}/${envName}/${env.VERSION}-${env.JAR_NAME}"
-        sh """
-            aws s3 cp target/${env.JAR_NAME} s3://${env.S3_BUCKET}/${s3Key}
-        """
-        echo "✅ JAR uploaded to S3: ${s3Key}"
-
-        // Step 2: Create new EB Application Version
-        def versionLabel = "${envName}-${env.VERSION}"
         sh """
             aws elasticbeanstalk create-application-version \
                 --application-name ${env.EB_APP_NAME} \
                 --version-label ${versionLabel} \
-                --source-bundle S3Bucket=${env.S3_BUCKET},S3Key=${s3Key} \
+                --source-bundle S3Bucket=${env.S3_BUCKET},S3Key=${env.S3_KEY} \
                 --region ${env.AWS_REGION}
-        """
-        echo "✅ Application version created: ${versionLabel}"
 
-        // Step 3: Deploy to EB Environment
-        sh """
             aws elasticbeanstalk update-environment \
-                --environment-name ${ebEnv} \
+                --environment-name ${env.EB_ENV_NAME} \
                 --version-label ${versionLabel} \
                 --region ${env.AWS_REGION}
-        """
-        echo "✅ Deploying to ${ebEnv}..."
 
-        // Step 4: Wait for deployment to complete
-        sh """
             aws elasticbeanstalk wait environment-updated \
-                --environment-names ${ebEnv} \
+                --environment-names ${env.EB_ENV_NAME} \
                 --region ${env.AWS_REGION}
         """
-        echo "🎉 Successfully deployed to ${envName.toUpperCase()}!"
+        echo "🎉 Deployed to ${env.DEPLOY_ENV.toUpperCase()}!"
     }
 }
