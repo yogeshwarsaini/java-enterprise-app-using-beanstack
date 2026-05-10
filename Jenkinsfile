@@ -1,57 +1,52 @@
 pipeline {
     agent any
 
-    tools {
-        maven 'Maven'
-        jdk 'JDK17'
-    }
-
     environment {
         APP_NAME    = 'java-enterprise-app'
         AWS_REGION  = 'ap-south-1'
-        EB_APP_NAME = 'my-java-app'
-        S3_BUCKET   = 'elasticbeanstalk-ap-south-1-YOUR_ACCOUNT_ID'
+        EB_APP_NAME = 'java-app-prod'
+        S3_BUCKET   = 'elasticbeanstalk-ap-south-1-678804053714'
         JAR_NAME    = 'enterprise-app.jar'
     }
 
     stages {
 
-        stage('📋 Checkout') {
+        stage('Checkout') {
             steps {
                 checkout scm
-                echo "🌿 Branch: ${env.BRANCH_NAME}"
+                echo "Branch: ${env.BRANCH_NAME}"
             }
         }
 
-        stage('🔧 Set Environment') {
+        stage('Set Environment') {
             steps {
-                script {
-                    if (env.BRANCH_NAME == 'main') {
-                        env.DEPLOY_ENV  = 'production'
-                        env.EB_ENV_NAME = 'myapp-prod'
-                    } else if (env.BRANCH_NAME == 'staging') {
-                        env.DEPLOY_ENV  = 'staging'
-                        env.EB_ENV_NAME = 'myapp-staging'
-                    } else if (env.BRANCH_NAME == 'test') {
-                        env.DEPLOY_ENV  = 'test'
-                        env.EB_ENV_NAME = 'myapp-test'
-                    } else {
-                        env.DEPLOY_ENV  = 'dev'
-                        env.EB_ENV_NAME = 'myapp-dev'
-                    }
-                    echo "🚀 Deploying to: ${env.DEPLOY_ENV.toUpperCase()}"
-                }
+            script {
+        if (env.BRANCH_NAME == 'main') {
+            env.DEPLOY_ENV  = 'production'
+            env.EB_ENV_NAME = 'Java-app-prod-env'
+        } else if (env.BRANCH_NAME == 'staging') {
+            env.DEPLOY_ENV  = 'staging'
+            env.EB_ENV_NAME = 'Java-app-staging-env'
+        } else if (env.BRANCH_NAME == 'test') {
+            env.DEPLOY_ENV  = 'test'
+            env.EB_ENV_NAME = 'Java-app-test-env'
+        } else {
+            env.DEPLOY_ENV  = 'dev'
+            env.EB_ENV_NAME = 'Java-app-dev-env'
+        }
+        echo "Deploying to: ${env.DEPLOY_ENV.toUpperCase()}"
+            }
             }
         }
 
-        stage('🔨 Build') {
+        stage('Build') {
             steps {
                 sh 'mvn clean package -DskipTests'
-                echo "✅ Build complete"
+                echo "Build complete"
             }
         }
 
-        stage('🧪 Test') {
+        stage('Test') {
             steps {
                 sh 'mvn test'
             }
@@ -62,7 +57,7 @@ pipeline {
             }
         }
 
-        stage('📦 Upload to S3') {
+        stage('Upload to S3') {
             steps {
                 script {
                     def s3Key = "${env.APP_NAME}/${env.DEPLOY_ENV}/build-${env.BUILD_NUMBER}-${env.JAR_NAME}"
@@ -70,34 +65,34 @@ pipeline {
                     withAWS(region: env.AWS_REGION, credentials: 'aws-credentials') {
                         sh "aws s3 cp target/${env.JAR_NAME} s3://${env.S3_BUCKET}/${s3Key}"
                     }
-                    echo "✅ Uploaded: ${s3Key}"
+                    echo "Uploaded: ${s3Key}"
                 }
             }
         }
 
-        stage('🚀 Deploy') {
+        stage('Deploy') {
             when { not { branch 'main' } }
             steps { script { deployToEB() } }
         }
 
-        stage('✋ Production Approval') {
+        stage('Production Approval') {
             when { branch 'main' }
             steps {
                 timeout(time: 10, unit: 'MINUTES') {
-                    input message: "🚨 Deploy to PRODUCTION?", ok: 'Yes, Deploy!'
+                    input message: "Deploy to PRODUCTION?", ok: 'Yes, Deploy!'
                 }
             }
         }
 
-        stage('🚀 Deploy to PROD') {
+        stage('Deploy to PROD') {
             when { branch 'main' }
             steps { script { deployToEB() } }
         }
     }
 
     post {
-        success { echo "✅ Deployed to ${env.DEPLOY_ENV?.toUpperCase()}" }
-        failure { echo "❌ Failed on branch: ${env.BRANCH_NAME}" }
+        success { echo "Successfully deployed to ${env.DEPLOY_ENV?.toUpperCase()}" }
+        failure { echo "Failed on branch: ${env.BRANCH_NAME}" }
         always  { cleanWs() }
     }
 }
@@ -121,6 +116,6 @@ def deployToEB() {
                 --environment-names ${env.EB_ENV_NAME} \
                 --region ${env.AWS_REGION}
         """
-        echo "🎉 Deployed to ${env.DEPLOY_ENV.toUpperCase()}!"
+        echo "Deployed to ${env.DEPLOY_ENV.toUpperCase()}!"
     }
 }
