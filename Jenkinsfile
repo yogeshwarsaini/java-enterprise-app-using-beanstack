@@ -5,7 +5,7 @@ pipeline {
         APP_NAME    = 'java-enterprise-app'
         AWS_REGION  = 'ap-south-1'
         EB_APP_NAME = 'my-java-app'
-        S3_BUCKET   = 'elasticbeanstalk-ap-south-1-YOUR_ACCOUNT_ID'
+        S3_BUCKET   = 'elasticbeanstalk-ap-south-1-678804053714'
         JAR_NAME    = 'enterprise-app.jar'
     }
 
