@@ -4,7 +4,7 @@ pipeline {
     environment {
         APP_NAME    = 'java-enterprise-app'
         AWS_REGION  = 'ap-south-1'
-        EB_APP_NAME = 'my-java-app'
+        EB_APP_NAME = 'java-app-prod'
         S3_BUCKET   = 'elasticbeanstalk-ap-south-1-678804053714'
         JAR_NAME    = 'enterprise-app.jar'
     }
@@ -20,22 +20,22 @@ pipeline {
 
         stage('Set Environment') {
             steps {
-                script {
-                    if (env.BRANCH_NAME == 'main') {
-                        env.DEPLOY_ENV  = 'production'
-                        env.EB_ENV_NAME = 'myapp-prod'
-                    } else if (env.BRANCH_NAME == 'staging') {
-                        env.DEPLOY_ENV  = 'staging'
-                        env.EB_ENV_NAME = 'myapp-staging'
-                    } else if (env.BRANCH_NAME == 'test') {
-                        env.DEPLOY_ENV  = 'test'
-                        env.EB_ENV_NAME = 'myapp-test'
-                    } else {
-                        env.DEPLOY_ENV  = 'dev'
-                        env.EB_ENV_NAME = 'myapp-dev'
-                    }
-                    echo "Deploying to: ${env.DEPLOY_ENV.toUpperCase()}"
-                }
+            script {
+        if (env.BRANCH_NAME == 'main') {
+            env.DEPLOY_ENV  = 'production'
+            env.EB_ENV_NAME = 'Java-app-prod-env'
+        } else if (env.BRANCH_NAME == 'staging') {
+            env.DEPLOY_ENV  = 'staging'
+            env.EB_ENV_NAME = 'Java-app-staging-env'
+        } else if (env.BRANCH_NAME == 'test') {
+            env.DEPLOY_ENV  = 'test'
+            env.EB_ENV_NAME = 'Java-app-test-env'
+        } else {
+            env.DEPLOY_ENV  = 'dev'
+            env.EB_ENV_NAME = 'Java-app-dev-env'
+        }
+        echo "Deploying to: ${env.DEPLOY_ENV.toUpperCase()}"
+            }
             }
         }
 
