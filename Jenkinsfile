@@ -1,181 +1,105 @@
-// ============================================
-// DEV / TEST / STAGING / MAIN BRANCHES
-// Sirf Pipeline Logic - Koi parameters nahi
-// ============================================
-
-def config = [:]
-
 pipeline {
     agent any
 
-    tools {
-        maven 'Maven'
-        jdk   'JDK17'
+    environment {
+        APP_NAME    = 'java-enterprise-app'
+        AWS_REGION  = 'ap-south-1'
+        EB_APP_NAME = 'my-java-app'
+        S3_BUCKET   = 'elasticbeanstalk-ap-south-1-678804053714'
+        JAR_NAME    = 'enterprise-app.jar'
     }
 
     stages {
 
-        // ─────────────────────────────────────────
-        // Step 1: Pehle actual branch checkout karo
-        // ─────────────────────────────────────────
         stage('Checkout') {
             steps {
                 checkout scm
-                script {
-                    def currentBranch = env.GIT_BRANCH?.replaceAll('origin/', '')
-                                     ?: env.BRANCH_NAME
-                                     ?: 'dev'
-                    env.CURRENT_BRANCH = currentBranch
-                    echo "📌 Current Branch: ${currentBranch}"
-                }
+                echo "Branch: ${env.BRANCH_NAME}"
             }
         }
 
-        // ─────────────────────────────────────────
-        // Step 2: Jenkins branch se config load karo
-        // ─────────────────────────────────────────
-        stage('Load Config') {
-            steps {
-                script {
-                    // Temp folder mein jenkins branch checkout karo
-                    dir('jenkins-config') {
-                        checkout([
-                            $class            : 'GitSCM',
-                            branches          : [[name: 'refs/heads/jenkins']],
-                            userRemoteConfigs : scm.userRemoteConfigs
-                        ])
-                        // Parameters load karo
-                        config = evaluate(readFile('Jenkinsfile'))
-                    }
-
-                    // jenkins-config folder delete karo
-                    sh 'rm -rf jenkins-config'
-
-                    echo "✅ Config loaded from jenkins branch"
-                    echo "🌍 Deploy Env : ${config.BRANCH_DEPLOY_MAP[env.CURRENT_BRANCH] ?: 'dev'}"
-                    echo "☁️  EB Env     : ${config.BRANCH_ENV_MAP[env.CURRENT_BRANCH] ?: 'Java-app-dev-env'}"
-                }
-            }
-        }
-
-        // ─────────────────────────────────────────
-        // Step 3: Environment variables set karo
-        // ─────────────────────────────────────────
         stage('Set Environment') {
             steps {
                 script {
-                    def branch = env.CURRENT_BRANCH
-
-                    env.APP_NAME    = config.APP_NAME
-                    env.JAR_NAME    = config.JAR_NAME
-                    env.AWS_REGION  = config.AWS_REGION
-                    env.AWS_CREDS   = config.AWS_CREDS
-                    env.EB_APP_NAME = config.EB_APP_NAME
-                    env.S3_BUCKET   = config.S3_BUCKET
-                    env.EB_ENV_NAME = config.BRANCH_ENV_MAP[branch]    ?: 'Java-app-dev-env'
-                    env.DEPLOY_ENV  = config.BRANCH_DEPLOY_MAP[branch] ?: 'dev'
-
-                    echo "🚀 Deploying to : ${env.DEPLOY_ENV.toUpperCase()}"
-                    echo "☁️  EB Env       : ${env.EB_ENV_NAME}"
+                    if (env.BRANCH_NAME == 'main') {
+                        env.DEPLOY_ENV  = 'production'
+                        env.EB_ENV_NAME = 'myapp-prod'
+                    } else if (env.BRANCH_NAME == 'staging') {
+                        env.DEPLOY_ENV  = 'staging'
+                        env.EB_ENV_NAME = 'myapp-staging'
+                    } else if (env.BRANCH_NAME == 'test') {
+                        env.DEPLOY_ENV  = 'test'
+                        env.EB_ENV_NAME = 'myapp-test'
+                    } else {
+                        env.DEPLOY_ENV  = 'dev'
+                        env.EB_ENV_NAME = 'myapp-dev'
+                    }
+                    echo "Deploying to: ${env.DEPLOY_ENV.toUpperCase()}"
                 }
             }
         }
 
-        // ─────────────────────────────────────────
-        // Step 4: Build
-        // ─────────────────────────────────────────
         stage('Build') {
             steps {
                 sh 'mvn clean package -DskipTests'
-                echo "✅ Build complete"
+                echo "Build complete"
             }
         }
 
-        // ─────────────────────────────────────────
-        // Step 5: Test
-        // ─────────────────────────────────────────
         stage('Test') {
             steps {
                 sh 'mvn test'
             }
             post {
                 always {
-                    junit allowEmptyResults: true,
-                          testResults: '**/target/surefire-reports/*.xml'
+                    junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
                 }
             }
         }
 
-        // ─────────────────────────────────────────
-        // Step 6: JAR S3 pe Upload karo
-        // ─────────────────────────────────────────
         stage('Upload to S3') {
             steps {
                 script {
                     def s3Key = "${env.APP_NAME}/${env.DEPLOY_ENV}/build-${env.BUILD_NUMBER}-${env.JAR_NAME}"
                     env.S3_KEY = s3Key
-
-                    withAWS(region: env.AWS_REGION, credentials: env.AWS_CREDS) {
+                    withAWS(region: env.AWS_REGION, credentials: 'aws-credentials') {
                         sh "aws s3 cp target/${env.JAR_NAME} s3://${env.S3_BUCKET}/${s3Key}"
                     }
-                    echo "✅ Uploaded to S3: ${s3Key}"
+                    echo "Uploaded: ${s3Key}"
                 }
             }
         }
 
-        // ─────────────────────────────────────────
-        // Step 7: Dev / Test / Staging Deploy
-        // ─────────────────────────────────────────
         stage('Deploy') {
-            when {
-                expression { env.CURRENT_BRANCH != 'main' }
-            }
-            steps {
-                script { deployToEB() }
-            }
+            when { not { branch 'main' } }
+            steps { script { deployToEB() } }
         }
 
-        // ─────────────────────────────────────────
-        // Step 8: Production - Manual Approval
-        // ─────────────────────────────────────────
         stage('Production Approval') {
-            when {
-                expression { env.CURRENT_BRANCH == 'main' }
-            }
+            when { branch 'main' }
             steps {
                 timeout(time: 10, unit: 'MINUTES') {
-                    input message: "🚨 Deploy to PRODUCTION?", ok: 'Yes, Deploy!'
+                    input message: "Deploy to PRODUCTION?", ok: 'Yes, Deploy!'
                 }
             }
         }
 
-        // ─────────────────────────────────────────
-        // Step 9: Production Deploy
-        // ─────────────────────────────────────────
         stage('Deploy to PROD') {
-            when {
-                expression { env.CURRENT_BRANCH == 'main' }
-            }
-            steps {
-                script { deployToEB() }
-            }
+            when { branch 'main' }
+            steps { script { deployToEB() } }
         }
     }
 
     post {
-        success { echo "✅ Deployed to ${env.DEPLOY_ENV?.toUpperCase()} successfully!" }
-        failure { echo "❌ Failed on branch: ${env.CURRENT_BRANCH}" }
+        success { echo "Successfully deployed to ${env.DEPLOY_ENV?.toUpperCase()}" }
+        failure { echo "Failed on branch: ${env.BRANCH_NAME}" }
         always  { cleanWs() }
     }
 }
 
-// ─────────────────────────────────────────────
-// Deploy function
-// ─────────────────────────────────────────────
 def deployToEB() {
     def versionLabel = "${env.DEPLOY_ENV}-build-${env.BUILD_NUMBER}"
-
-    withAWS(region: env.AWS_REGION, credentials: env.AWS_CREDS) {
+    withAWS(region: env.AWS_REGION, credentials: 'aws-credentials') {
         sh """
             aws elasticbeanstalk create-application-version \
                 --application-name ${env.EB_APP_NAME} \
@@ -192,6 +116,6 @@ def deployToEB() {
                 --environment-names ${env.EB_ENV_NAME} \
                 --region ${env.AWS_REGION}
         """
-        echo "🎉 Deployed to ${env.DEPLOY_ENV.toUpperCase()}!"
+        echo "Deployed to ${env.DEPLOY_ENV.toUpperCase()}!"
     }
 }
